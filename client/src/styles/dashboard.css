@@ -1,0 +1,273 @@
+.headerDashboard {
+    background-color: #23395d;
+    color: rgb(255, 255, 255);
+    padding: 15px;
+    text-align: center;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.welcome {
+    font-size: 50px;
+    margin: 10px 0;
+    color: white;
+    font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+
+}
+
+.welcomeName {
+    font-size: 50px;
+    margin: 10px 0;
+    color: white;
+    font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif
+}
+
+.balance-card {
+    background-color: #2a5298;
+    color: white;
+    margin: 15px 20px;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.balance-card.secondary {
+    background-color: #1c3a6f;
+}
+
+.balance-card h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: normal;
+}
+
+.balance-card p {
+    margin: 10px 0 5px;
+}
+
+.balance-card .amount {
+    font-size: 42px;
+    font-weight: bold;
+}
+
+.balance-card .amount sup {
+    font-size: 22px;
+}
+
+.balance-card .label {
+    font-size: 17px;
+    opacity: 0.8;
+}
+
+.btns {
+    display: flex;
+}
+
+.btn-transfer {
+    width: 180px;
+    height: 50px;
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 25px;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-left: 2%;
+}
+
+.btn-transfer:hover {
+    background-color: #0056b3;
+
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.2);
+
+    transform: translateY(-2px);
+
+}
+
+.btn-transfer:active {
+    background-color: #004a94;
+
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+    transform: translateY(1px);
+
+}
+
+.btn-logout {
+    width: 120px;
+    height: 40px;
+    background-color: #dc3545;
+    color: #fff;
+    border: none;
+    border-radius: 20px;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-left: 30%;
+}
+
+.btn-logout:hover {
+    background-color: #c82333;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+    transform: translateY(-1px);
+}
+
+.btn-logout:active {
+    background-color: #bd2130;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    transform: translateY(1px);
+}
+
+.btn-deposit {
+    width: 180px;
+    height: 50px;
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 25px;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-left: 2%;
+}
+
+.btn-deposit:hover {
+    background-color: #0056b3;
+
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.2);
+
+    transform: translateY(-2px);
+
+}
+
+.btn-deposit:active {
+    background-color: #004a94;
+
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+    transform: translateY(1px);
+
+}
+
+.btn-withdraw {
+    width: 180px;
+    height: 50px;
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 25px;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-left: 2%;
+}
+
+.btn-withdraw:hover {
+    background-color: #0056b3;
+
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.2);
+
+    transform: translateY(-2px);
+
+}
+
+.btn-withdraw:active {
+    background-color: #004a94;
+
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+    transform: translateY(1px);
+
+}
+
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+
+.modal-content {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    width: 300px;
+    text-align: center;
+    position: relative;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+
+.close-modal-button {
+    margin-top: 20px;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.form-group {
+    margin-bottom: 15px;
+    text-align: left;
+}
+
+.form-group label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 8px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+
+.submit-transfer-button {
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    margin-top: 10px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+}
+
+.account {
+    font-size: 25px;
+    font-weight: bold;
+}

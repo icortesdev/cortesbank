@@ -1,0 +1,32 @@
+.transactions {
+    margin: 15px 20px;
+    background-color: white;
+    border-radius: 12px;
+    border: 1px solid #dce3ed;
+    padding: 20px;
+    max-height: 450px;
+    overflow-y: auto;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+}
+.transactions h3 {
+    font-size: 19px;
+    margin-bottom: 15px;
+}
+.transaction-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid #e0e0e0;
+}
+.transaction-item:last-child {
+    border-bottom: none;
+}
+.transaction-item .description {
+    font-size: 17px;
+    color: #333;
+}
+.transaction-item .amount {
+    font-size: 17px;
+    color: green;
+    font-weight: bold;
+}
