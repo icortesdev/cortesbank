@@ -13,6 +13,7 @@ const Dashboard = () => {
     const [isTransferOpen, setIsTransferOpen] = useState(false);
     const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
     const [isdepositOpen, setisdepositOpen] = useState(false);
+ 
 
     const openTransferModal = () => setIsTransferOpen(true);
     const closeTransferModal = () => setIsTransferOpen(false);
@@ -80,6 +81,7 @@ const Dashboard = () => {
 
     fetchAccountNumber();
 
+    
 
     const logout = () => {
         localStorage.removeItem('user_name');
@@ -100,7 +102,7 @@ const Dashboard = () => {
             <div className="balance-card">
                 <h1 className='welcomeName'>Bienvenido <strong>{userName}.</strong></h1>
                 <h2> Número de cuenta:</h2>
-                <p className='account'>{accountNumber}</p> 
+                <p className='account'>{accountNumber}</p>
                 <p className="label">Balance disponible:</p>
                 <p className="amount">{balance} </p>
             </div>

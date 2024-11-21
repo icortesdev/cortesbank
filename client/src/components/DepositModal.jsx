@@ -1,25 +1,20 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
-const API_BASE_URL = 'http://localhost:3001'
+const API_BASE_URL = 'http://localhost:3001';
 
-const DepositModal = ({ onClose }) => {
+const DepositModal = ({ onClose, updateBalance }) => {
     const [isOpen, setIsOpen] = useState(true);
     const [amount, setAmount] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState(null);
 
-    const closeDepositModal = () => {
-        setIsOpen(false);
-        onClose();
-    };
-
-    const handleTransfer = async (e) => {
+    const handleDeposit = async (e) => {
         e.preventDefault();
+        const token = localStorage.getItem('token');
 
-        // Validaciones básicas
         if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
-            setError("Por favor ingrese una cantidad válida");
+            setError("Por favor ingrese una cantidad válida mayor a cero");
             return;
         }
 
@@ -32,37 +27,47 @@ const DepositModal = ({ onClose }) => {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
+                    "Authorization": token
                 },
                 body: JSON.stringify({
-                    amount: parseFloat(amount)
-                }),
+                    amount: parseFloat(amount),
+                    type: 'deposit' // Agregamos el tipo de transacción
+                })
             });
 
             const data = await response.json();
 
             if (!response.ok) {
-                throw new Error(data.message || "Error al procesar el depósito");
+                throw new Error(data.message);
             }
 
             setSuccess({
                 message: "Depósito realizado con éxito",
-                amount: amount,
+                amount: parseFloat(amount),
                 newBalance: data.data.newBalance
             });
 
-            // Limpiar el formulario
+            if (updateBalance) {
+                updateBalance(data.data.newBalance);
+            }
+
             setAmount("");
 
-            // Cerrar el modal después de 2 segundos
             setTimeout(() => {
                 closeDepositModal();
-            }, 2000);
+            }, 1000);
 
         } catch (err) {
+            console.error("Error:", err);
             setError(err.message);
         } finally {
             setIsLoading(false);
         }
+    };
+
+    const closeDepositModal = () => {
+        setIsOpen(false);
+        onClose();
     };
 
     return (
@@ -70,28 +75,27 @@ const DepositModal = ({ onClose }) => {
             {isOpen && (
                 <div className="modal-overlay" onClick={closeDepositModal}>
                     <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                        <form onSubmit={handleTransfer}>
+                        <form onSubmit={handleDeposit}>
                             {error && <div className="error-message">{error}</div>}
                             {success && (
                                 <div className="success-message">
                                     {success.message}
-                                    <br />
-                                    Monto: ${parseFloat(success.amount).toFixed(2)}
-                                    <br />
-                                    Nuevo balance: ${success.newBalance.toFixed(2)}
+                                    <div className="mt-2">
+                                        Monto depositado: ${success.amount.toFixed(2)}
+                                    </div>
                                 </div>
                             )}
                             <div className="form-group">
-                                <label htmlFor="amount">Cantidad</label>
+                                <label htmlFor="amount">Cantidad a Depositar</label>
                                 <input
                                     type="number"
                                     id="amount"
                                     value={amount}
                                     onChange={(e) => setAmount(e.target.value)}
                                     required
-                                    min="0"
+                                    min="0.01"
                                     step="0.01"
-                                    placeholder="Ingrese la cantidad"
+                                    placeholder="Ingrese la cantidad a depositar"
                                     disabled={isLoading}
                                 />
                             </div>
@@ -100,7 +104,7 @@ const DepositModal = ({ onClose }) => {
                                 className="submit-transfer-button"
                                 disabled={isLoading}
                             >
-                                {isLoading ? "Procesando..." : "Realizar Ingreso"}
+                                {isLoading ? "Procesando..." : "Realizar Depósito"}
                             </button>
                         </form>
                         <button
