@@ -451,8 +451,8 @@ app.post('/api/deposit', (req, res) => {
     }
 });
 
-// Endpoint de retiro
-app.post('/api/withdraw', (req, res) => {
+
+app.post('/api/withdrawal', (req, res) => {
     const token = req.headers['authorization'];
     const { amount } = req.body;
 
@@ -491,7 +491,7 @@ app.post('/api/withdraw', (req, res) => {
                     });
                 }
 
-                // 1. Obtener la cuenta del usuario y verificar balance
+                // 1. Obtener la cuenta del usuario
                 const accountQuery = 'SELECT id, account_number, balance FROM accounts WHERE user_id = ?';
                 connection.query(accountQuery, [userId], (err, accountResults) => {
                     if (err) {
@@ -516,8 +516,8 @@ app.post('/api/withdraw', (req, res) => {
                     }
 
                     const account = accountResults[0];
-
-                    // Verificar si hay suficiente balance
+                    
+                    // Verificar que haya saldo suficiente
                     if (parseFloat(account.balance) < parseFloat(amount)) {
                         return connection.rollback(() => {
                             connection.release();
@@ -544,14 +544,15 @@ app.post('/api/withdraw', (req, res) => {
                             });
                         }
 
-                        // 3. Registrar la transacción con target_account como la cuenta del usuario
+                        // 3. Registrar la transacción con target_account como NULL porque es un retiro
                         const transactionQuery = `
                             INSERT INTO transactions 
                             (origin_account, target_account, amount, transaction_date) 
-                            VALUES (NULL, ?, ?, NOW())
+                            VALUES (?, ?, ?, NOW())
                         `;
                         connection.query(transactionQuery, [
-                            account.id, // target_account es la cuenta del usuario para retiros
+                            account.id,
+                            null,
                             amount
                         ], (err, transactionResult) => {
                             if (err) {

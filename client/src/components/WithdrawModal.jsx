@@ -33,7 +33,7 @@ const WithdrawModal = ({ onClose, updateBalance }) => {
         setIsLoading(true);
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/withdraw`, {
+            const response = await fetch(`${API_BASE_URL}/api/withdrawal`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
