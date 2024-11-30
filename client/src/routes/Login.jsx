@@ -7,11 +7,11 @@ const Login = () => {
     const [formData, setFormData] = useState({ user_name: '', user_password: '' });
     // eslint-disable-next-line no-unused-vars
     const [errors, setErrors] = useState({});
-    const navigate = useNavigate(); 
+    const navigate = useNavigate();
 
     const validateInputs = () => {
         const newErrors = {};
-        
+
         if (!formData.user_name) {
             newErrors.user_name = 'El nombre de usuario es obligatorio.';
         } else if (formData.user_name.length < 3) {
@@ -25,13 +25,13 @@ const Login = () => {
         }
 
         setErrors(newErrors);
-        return Object.keys(newErrors).length === 0; 
+        return Object.keys(newErrors).length === 0;
     };
 
 
     const handleSubmit = async (event) => {
         event.preventDefault();
- if (!validateInputs()) 
+        if (!validateInputs())
             return;
         try {
             const response = await fetch('http://localhost:3001/login', {
@@ -61,7 +61,7 @@ const Login = () => {
             console.error('Error al conectar con el backend', error);
         }
     };
-    
+
     return (
         <form onSubmit={handleSubmit} className="login-form">
             <div className="login-input-group">

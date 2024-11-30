@@ -67,82 +67,99 @@ async function generateUniqueAccountNumber() {
     return accountNumber;
 }
 
-// Registro de nuevo usuario
+//registro nuevo usuario
 app.post("/register", async (req, res) => {
     const { user_name, dni, user_password } = req.body;
 
+    // Validaciones iniciales
     if (!user_name || !dni || !user_password) {
-        return res.status(400).json({ message: 'Por favor, completa todos los campos' });
+        return res.status(400).json({ message: "Por favor, completa todos los campos" });
     }
 
-    // Validar longitud del DNI
     if (dni.length > 10) {
-        return res.status(400).json({ message: 'El DNI no puede exceder 10 caracteres' });
+        return res.status(400).json({ message: "El DNI no puede exceder 10 caracteres" });
     }
+
+    let connection;
 
     try {
-        // Comenzar transacción
-        db.beginTransaction(async (err) => {
-            if (err) { throw err; }
-
-            try {
-                // 1. Crear el usuario
-                const hashedPassword = await bcrypt.hash(user_password, 10);
-                const insertUserQuery = 'INSERT INTO users (user_name, dni, user_password) VALUES (?, ?, ?)';
-
-                db.query(insertUserQuery, [user_name, dni, hashedPassword], async (err, userResult) => {
-                    if (err) {
-                        return db.rollback(() => {
-                            throw err;
-                        });
-                    }
-
-                    const userId = userResult.insertId;
-
-                    // 2. Generar número de cuenta único
-                    const accountNumber = await generateUniqueAccountNumber();
-
-                    // 3. Crear la cuenta asociada al usuario
-                    const insertAccountQuery = `
-                        INSERT INTO accounts 
-                        (user_id, balance, account_number, creation_date) 
-                        VALUES (?, ?, ?, NOW())
-                    `;
-                    const initialBalance = 0;
-
-                    db.query(insertAccountQuery, [userId, initialBalance, accountNumber], (err, accountResult) => {
-                        if (err) {
-                            return db.rollback(() => {
-                                throw err;
-                            });
-                        }
-
-                        // Confirmar transacción
-                        db.commit((err) => {
-                            if (err) {
-                                return db.rollback(() => {
-                                    throw err;
-                                });
-                            }
-
-                            res.status(200).json({
-                                message: 'Usuario y cuenta creados correctamente',
-                                userId: userId,
-                                accountNumber: accountNumber
-                            });
-                        });
-                    });
-                });
-            } catch (error) {
-                db.rollback(() => {
-                    console.error('Error durante el registro:', error);
-                    res.status(500).json({ message: 'Error al registrar el usuario' });
-                });
-            }
+        // Obtener una conexión del pool
+        connection = await new Promise((resolve, reject) => {
+            db.getConnection((err, conn) => {
+                if (err) return reject(err);
+                resolve(conn);
+            });
         });
+
+        // Iniciar transacción
+        await new Promise((resolve, reject) => {
+            connection.beginTransaction((err) => {
+                if (err) return reject(err);
+                resolve();
+            });
+        });
+
+        // 1. Crear el usuario con contraseña hasheada
+        const hashedPassword = await bcrypt.hash(user_password, 10);
+        const insertUserQuery = `
+            INSERT INTO users (user_name, dni, user_password) 
+            VALUES (?, ?, ?)
+        `;
+        const userResult = await new Promise((resolve, reject) => {
+            connection.query(insertUserQuery, [user_name, dni, hashedPassword], (err, result) => {
+                if (err) return reject(err);
+                resolve(result);
+            });
+        });
+
+        const userId = userResult.insertId;
+
+        // 2. Generar un número de cuenta único
+        const accountNumber = await generateUniqueAccountNumber();
+
+        // 3. Crear la cuenta asociada al usuario
+        const insertAccountQuery = `
+            INSERT INTO accounts (user_id, balance, account_number, creation_date) 
+            VALUES (?, ?, ?, NOW())
+        `;
+        const initialBalance = 0;
+        await new Promise((resolve, reject) => {
+            connection.query(insertAccountQuery, [userId, initialBalance, accountNumber], (err, result) => {
+                if (err) return reject(err);
+                resolve(result);
+            });
+        });
+
+        // Confirmar la transacción
+        await new Promise((resolve, reject) => {
+            connection.commit((err) => {
+                if (err) return reject(err);
+                resolve();
+            });
+        });
+
+        // Respuesta exitosa
+        res.status(200).json({
+            message: "Usuario y cuenta creados correctamente",
+            userId: userId,
+            accountNumber: accountNumber,
+        });
+
     } catch (error) {
-        console.error('Error durante el registro:', error);
-        res.status(500).json({ message: 'Error al registrar el usuario' });
+        // Rollback en caso de error
+        if (connection) {
+            await new Promise((resolve, reject) => {
+                connection.rollback(() => resolve());
+            });
+        }
+
+        console.error("Error durante el registro:", error);
+        res.status(500).json({ message: "Error al registrar el usuario" });
+    } finally {
+        // Liberar la conexión
+        if (connection) {
+            connection.release();
+        }
     }
 });
 
@@ -155,7 +172,11 @@ app.post("/login", (req, res) => {
     }
 
     const query = `
-        SELECT u.*, a.account_number, a.balance 
+        SELECT 
+            u.*,
+            a.id as account_id,
+            a.account_number,
+            a.balance 
         FROM users u
         LEFT JOIN accounts a ON u.id = a.user_id
         WHERE u.user_name = ?
@@ -163,7 +184,7 @@ app.post("/login", (req, res) => {
 
     db.query(query, [user_name], async (err, results) => {
         if (err) {
-            console.error('Error en la consulta de la base de datos:', err);
+            console.error('Error en la consulta:', err);
             return res.status(500).json({ message: 'Error en el servidor' });
         }
 
@@ -184,39 +205,61 @@ app.post("/login", (req, res) => {
                 {
                     userId: user.id,
                     user_name: user.user_name,
-                    accountNumber: user.account_number
+                    accountNumber: user.account_number,
+                    accountId: user.account_id
                 },
                 process.env.JWT_SECRET,
                 { expiresIn: '1h' }
             );
 
-            return res.status(200).json({
+            res.status(200).json({
                 message: 'Autenticado correctamente',
                 token,
                 user_name: user.user_name,
                 accountNumber: user.account_number,
+                account_id: user.account_id,
                 balance: user.balance
             });
-        } catch (compareError) {
-            console.error('Error en la comparación de contraseñas:', compareError);
-            return res.status(500).json({ message: 'Error en la autenticación' });
+        } catch (error) {
+            console.error('Error en la autenticación:', error);
+            res.status(500).json({ message: 'Error en la autenticación' });
         }
     });
 });
 
 // Obtener transacciones
+
 app.get('/transactions', (req, res) => {
-    const query = 'SELECT * FROM transactions ORDER BY transaction_date DESC';
-    db.query(query, (error, results) => {
-        if (error) {
-            console.error('Error al obtener transacciones:', error);
-            res.status(500).json({ error: 'Error al obtener transacciones' });
-        } else {
-            res.json(results);
-        }
+    const token = req.headers['authorization'];
+
+    if (!token) return res.status(403).json({ message: 'Token requerido' });
+
+    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+        if (err) return res.status(403).json({ message: 'Token inválido' });
+
+        // Consulta modificada para incluir los nombres de usuario
+        const query = `
+            SELECT t.*, 
+                   u1.user_name as origin_user_name,
+                   u2.user_name as target_user_name
+            FROM transactions t
+            LEFT JOIN accounts a1 ON t.origin_account = a1.id
+            LEFT JOIN accounts a2 ON t.target_account = a2.id
+            LEFT JOIN users u1 ON a1.user_id = u1.id
+            LEFT JOIN users u2 ON a2.user_id = u2.id
+            WHERE a1.user_id = ? OR a2.user_id = ?
+            ORDER BY t.transaction_date DESC
+        `;
+
+        db.query(query, [decoded.userId, decoded.userId], (err, transactions) => {
+            if (err) {
+                console.error('Error al obtener transacciones:', err);
+                return res.status(500).json({ error: 'Error al obtener transacciones' });
+            }
+            res.json(transactions);
+        });
     });
 });
-
 // Obtener balance de la cuenta
 app.get('/api/user/balance', (req, res) => {
     const token = req.headers['authorization'];
@@ -281,6 +324,7 @@ app.get('/api/user/accountnumber', (req, res) => {
 
 
 // Endpoint para procesar la solicitud a OpenAI
+
 app.post('/api/chat', async (req, res) => {
     const { messages } = req.body;
 
@@ -309,7 +353,8 @@ app.post('/api/chat', async (req, res) => {
 });
 
 
-// Endpoint del depósito
+// Endpoint para realizar depósito
+
 app.post('/api/deposit', (req, res) => {
     const token = req.headers['authorization'];
     const { amount } = req.body;
@@ -451,6 +496,7 @@ app.post('/api/deposit', (req, res) => {
     }
 });
 
+// Endpoint para realizar retiros
 
 app.post('/api/withdrawal', (req, res) => {
     const token = req.headers['authorization'];
@@ -472,6 +518,7 @@ app.post('/api/withdrawal', (req, res) => {
         const userId = decoded.userId;
 
         // Obtener conexión del pool
+
         db.getConnection((err, connection) => {
             if (err) {
                 console.error('Error al obtener conexión del pool:', err);
@@ -516,7 +563,7 @@ app.post('/api/withdrawal', (req, res) => {
                     }
 
                     const account = accountResults[0];
-                    
+
                     // Verificar que haya saldo suficiente
                     if (parseFloat(account.balance) < parseFloat(amount)) {
                         return connection.rollback(() => {
@@ -603,6 +650,123 @@ app.post('/api/withdrawal', (req, res) => {
             message: 'Token inválido'
         });
     }
+});
+
+// Endpoint para realizar transferencias
+
+app.post('/api/transfer', (req, res) => {
+    const token = req.headers['authorization'];
+    const { targetAccount, amount } = req.body;
+
+    if (!token) return res.status(403).json({ message: 'Token requerido' });
+    if (!targetAccount || !amount || amount <= 0) {
+        return res.status(400).json({ message: 'Datos inválidos' });
+    }
+
+    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+        if (err) return res.status(403).json({ message: 'Token inválido' });
+
+        const sourceAccountId = decoded.accountId;
+
+        db.getConnection((err, connection) => {
+            if (err) return res.status(500).json({ message: 'Error de conexión' });
+
+            connection.beginTransaction(err => {
+                if (err) {
+                    connection.release();
+                    return res.status(500).json({ message: 'Error al iniciar transacción' });
+                }
+
+                connection.query('SELECT * FROM accounts WHERE id = ?',
+                    [sourceAccountId],
+                    (err, sourceAccounts) => {
+                        if (err || !sourceAccounts.length) {
+                            connection.rollback(() => {
+                                connection.release();
+                                return res.status(404).json({ message: 'Cuenta origen no encontrada' });
+                            });
+                            return;
+                        }
+
+                        connection.query('SELECT * FROM accounts WHERE account_number = ?',
+                            [targetAccount],
+                            (err, targetAccounts) => {
+                                if (err || !targetAccounts.length) {
+                                    connection.rollback(() => {
+                                        connection.release();
+                                        return res.status(404).json({ message: 'Cuenta destino no encontrada' });
+                                    });
+                                    return;
+                                }
+
+                                const sourceAccount = sourceAccounts[0];
+                                const targetAccountData = targetAccounts[0];
+
+                                if (sourceAccount.balance < amount) {
+                                    connection.rollback(() => {
+                                        connection.release();
+                                        return res.status(400).json({ message: 'Saldo insuficiente' });
+                                    });
+                                    return;
+                                }
+
+                                connection.query('UPDATE accounts SET balance = balance - ? WHERE id = ?',
+                                    [amount, sourceAccount.id],
+                                    (err) => {
+                                        if (err) {
+                                            connection.rollback(() => {
+                                                connection.release();
+                                                return res.status(500).json({ message: 'Error al actualizar cuenta origen' });
+                                            });
+                                            return;
+                                        }
+
+                                        connection.query('UPDATE accounts SET balance = balance + ? WHERE id = ?',
+                                            [amount, targetAccountData.id],
+                                            (err) => {
+                                                if (err) {
+                                                    connection.rollback(() => {
+                                                        connection.release();
+                                                        return res.status(500).json({ message: 'Error al actualizar cuenta destino' });
+                                                    });
+                                                    return;
+                                                }
+
+                                                connection.query('INSERT INTO transactions (origin_account, target_account, amount, transaction_date) VALUES (?, ?, ?, NOW())',
+                                                    [sourceAccountId, targetAccountData.id, amount],
+                                                    (err) => {
+                                                        if (err) {
+                                                            connection.rollback(() => {
+                                                                connection.release();
+                                                                return res.status(500).json({ message: 'Error al registrar transacción' });
+                                                            });
+                                                            return;
+                                                        }
+
+                                                        connection.commit((err) => {
+                                                            if (err) {
+                                                                connection.rollback(() => {
+                                                                    connection.release();
+                                                                    return res.status(500).json({ message: 'Error al confirmar transacción' });
+                                                                });
+                                                                return;
+                                                            }
+
+                                                            connection.release();
+                                                            res.json({
+                                                                message: 'Transferencia exitosa',
+                                                                amount,
+                                                                newBalance: sourceAccount.balance - amount
+                                                            });
+                                                        });
+                                                    });
+                                            });
+                                    });
+                            });
+                    });
+            });
+        });
+    });
 });
 
 // Puerto del servidor

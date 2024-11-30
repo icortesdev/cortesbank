@@ -3,33 +3,33 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 
 const TransactionsBoard = () => {
-    const [accountNumber, setAccountNumber] = useState('');
-    const [balance, setBalance] = useState('');
     const [transactions, setTransactions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const transactionsPerPage = 10;
 
-    // Función para determinar el tipo de transacción
     const getTransactionType = (transaction) => {
-
-        if (transaction.target_account === null || transaction.target_account === 'null' || transaction.target_account === undefined) {
+        if (transaction.target_account === null ||
+            transaction.target_account === 'null' ||
+            transaction.target_account === undefined) {
             return 'Retiro';
-        }
-        if (transaction.origin_account === null || transaction.origin_account === 'null' || transaction.origin_account === undefined) {
+        } else if (transaction.origin_account === null ||
+            transaction.origin_account === 'null' ||
+            transaction.origin_account === undefined) {
             return 'Depósito';
+        } else {
+            return 'Transferencia';
         }
-        return 'Transferencia';
     };
 
     const getAmountColor = (transaction) => {
-        const type = getTransactionType(transaction);
-        switch (type) {
-            case 'Retiro':
-                return 'text-red-500';
-            case 'Depósito':
-                return 'text-green-500';
-            default:
-                return 'text-blue-500';
+        const userName = localStorage.getItem('user_name');
+
+        if (transaction.origin_user_name === userName) {
+            return 'text-red-500';  // El usuario actual es el que envía
+        } else {
+            return 'text-green-500';  // El usuario actual recibe
         }
     };
 
@@ -44,17 +44,16 @@ const TransactionsBoard = () => {
         }).format(date);
     };
 
+    const indexOfLastTransaction = currentPage * transactionsPerPage;
+    const indexOfFirstTransaction = indexOfLastTransaction - transactionsPerPage;
+    const currentTransactions = transactions.slice(indexOfFirstTransaction, indexOfLastTransaction);
+    const totalPages = Math.ceil(transactions.length / transactionsPerPage);
+
+    const paginate = (pageNumber) => {
+        setCurrentPage(pageNumber);
+    };
+
     useEffect(() => {
-        const storedAccountNumber = localStorage.getItem('account_number');
-        if (storedAccountNumber) {
-            setAccountNumber(storedAccountNumber);
-        }
-
-        const storedBalance = localStorage.getItem('user_balance');
-        if (storedBalance) {
-            setBalance(storedBalance);
-        }
-
         const fetchTransactions = async () => {
             const token = localStorage.getItem('token');
             if (!token) {
@@ -106,23 +105,45 @@ const TransactionsBoard = () => {
             {transactions.length === 0 ? (
                 <div className="no-transactions">No hay transacciones</div>
             ) : (
-                <div className="transactions-list">
-                    {transactions.map((transaction) => (
-                        <div key={transaction.id} className="transaction-item">
-                            <div className="transaction-info">
-                                <span className="transaction-date">
-                                    {formatDate(transaction.transaction_date)}
-                                </span>
-                                <span className="transaction-type">
-                                    {getTransactionType(transaction)}
-                                </span>
-                                <span className={`transaction-amount ${getAmountColor(transaction)}`}>
-                                    ${parseFloat(transaction.amount).toFixed(2)}
-                                </span>
+                <>
+                    <div className="transactions-list">
+                        {currentTransactions.map((transaction) => (
+                            <div key={transaction.id} className="transaction-item">
+                                <div className="transaction-info">
+                                    <span className="transaction-date">
+                                        {formatDate(transaction.transaction_date)}
+                                    </span>
+                                    <span className="transaction-type">
+                                        {getTransactionType(transaction)}
+                                    </span>
+                                    <span className={`transaction-amount ${getAmountColor(transaction)}`}>
+                                        ${parseFloat(transaction.amount).toFixed(2)}
+                                    </span>
+                                </div>
                             </div>
-                        </div>
-                    ))}
-                </div>
+                        ))}
+                    </div>
+
+                    <div className="pagination">
+                        <button
+                            className="pagination-button"
+                            onClick={() => paginate(currentPage - 1)}
+                            disabled={currentPage === 1}
+                        >
+                            Anterior
+                        </button>
+                        <span className="pagination-info">
+                            Página {currentPage} de {totalPages}
+                        </span>
+                        <button
+                            className="pagination-button"
+                            onClick={() => paginate(currentPage + 1)}
+                            disabled={currentPage === totalPages}
+                        >
+                            Siguiente
+                        </button>
+                    </div>
+                </>
             )}
         </div>
     );
