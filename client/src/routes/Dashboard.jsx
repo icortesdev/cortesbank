@@ -57,7 +57,7 @@ const Dashboard = () => {
         fetchBalance();
     }, []);
 
-    // Obtener el numero de cuenta del usuario
+   
 
     const fetchAccountNumber = async () => {
         const token = localStorage.getItem('token');

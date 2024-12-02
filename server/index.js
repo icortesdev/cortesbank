@@ -17,7 +17,7 @@ app.use(cors({
 
 app.use(express.json());
 
-// Conexión a la base de datos
+
 const db = mysql.createPool({
     host: process.env.DATABASE_HOST,
     user: process.env.DATABASE_USER,
@@ -33,7 +33,7 @@ db.getConnection((err) => {
     console.log('Conectado a la base de datos MySQL');
 });
 
-// Función para generar número de cuenta aleatorio de 20 dígitos
+
 function generateAccountNumber() {
     let accountNumber = '';
     for (let i = 0; i < 20; i++) {
@@ -42,7 +42,7 @@ function generateAccountNumber() {
     return accountNumber;
 }
 
-// Función para verificar si un número de cuenta ya existe
+
 function checkAccountNumberExists(accountNumber) {
     return new Promise((resolve, reject) => {
         const query = 'SELECT COUNT(*) as count FROM accounts WHERE account_number = ?';
@@ -56,7 +56,7 @@ function checkAccountNumberExists(accountNumber) {
     });
 }
 
-// Función para generar un número de cuenta único
+
 async function generateUniqueAccountNumber() {
     let accountNumber;
     let exists;
@@ -83,7 +83,7 @@ app.post("/register", async (req, res) => {
     let connection;
 
     try {
-        // Obtener una conexión del pool
+        
         connection = await new Promise((resolve, reject) => {
             db.getConnection((err, conn) => {
                 if (err) return reject(err);
@@ -91,7 +91,7 @@ app.post("/register", async (req, res) => {
             });
         });
 
-        // Iniciar transacción
+      
         await new Promise((resolve, reject) => {
             connection.beginTransaction((err) => {
                 if (err) return reject(err);
@@ -99,7 +99,7 @@ app.post("/register", async (req, res) => {
             });
         });
 
-        // 1. Crear el usuario con contraseña hasheada
+       
         const hashedPassword = await bcrypt.hash(user_password, 10);
         const insertUserQuery = `
             INSERT INTO users (user_name, dni, user_password) 
@@ -114,10 +114,10 @@ app.post("/register", async (req, res) => {
 
         const userId = userResult.insertId;
 
-        // 2. Generar un número de cuenta único
+      
         const accountNumber = await generateUniqueAccountNumber();
 
-        // 3. Crear la cuenta asociada al usuario
+       
         const insertAccountQuery = `
             INSERT INTO accounts (user_id, balance, account_number, creation_date) 
             VALUES (?, ?, ?, NOW())
@@ -130,7 +130,7 @@ app.post("/register", async (req, res) => {
             });
         });
 
-        // Confirmar la transacción
+       
         await new Promise((resolve, reject) => {
             connection.commit((err) => {
                 if (err) return reject(err);
@@ -138,7 +138,7 @@ app.post("/register", async (req, res) => {
             });
         });
 
-        // Respuesta exitosa
+        
         res.status(200).json({
             message: "Usuario y cuenta creados correctamente",
             userId: userId,
@@ -146,7 +146,7 @@ app.post("/register", async (req, res) => {
         });
 
     } catch (error) {
-        // Rollback en caso de error
+     
         if (connection) {
             await new Promise((resolve, reject) => {
                 connection.rollback(() => resolve());
@@ -156,7 +156,7 @@ app.post("/register", async (req, res) => {
         console.error("Error durante el registro:", error);
         res.status(500).json({ message: "Error al registrar el usuario" });
     } finally {
-        // Liberar la conexión
+     
         if (connection) {
             connection.release();
         }
@@ -237,7 +237,7 @@ app.get('/transactions', (req, res) => {
     jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
         if (err) return res.status(403).json({ message: 'Token inválido' });
 
-        // Consulta modificada para incluir los nombres de usuario
+      
         const query = `
             SELECT t.*, 
                    u1.user_name as origin_user_name,
@@ -260,6 +260,7 @@ app.get('/transactions', (req, res) => {
         });
     });
 });
+
 // Obtener balance de la cuenta
 app.get('/api/user/balance', (req, res) => {
     const token = req.headers['authorization'];
@@ -374,7 +375,7 @@ app.post('/api/deposit', (req, res) => {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         const userId = decoded.userId;
 
-        // Obtener conexión del pool
+        
         db.getConnection((err, connection) => {
             if (err) {
                 console.error('Error al obtener conexión del pool:', err);
@@ -394,7 +395,6 @@ app.post('/api/deposit', (req, res) => {
                     });
                 }
 
-                // 1. Obtener la cuenta del usuario
                 const accountQuery = 'SELECT id, account_number, balance FROM accounts WHERE user_id = ?';
                 connection.query(accountQuery, [userId], (err, accountResults) => {
                     if (err) {
@@ -421,7 +421,7 @@ app.post('/api/deposit', (req, res) => {
                     const account = accountResults[0];
                     const newBalance = parseFloat(account.balance) + parseFloat(amount);
 
-                    // 2. Actualizar el balance
+                    
                     const updateQuery = 'UPDATE accounts SET balance = ? WHERE id = ?';
                     connection.query(updateQuery, [newBalance, account.id], (err, updateResult) => {
                         if (err) {
@@ -435,7 +435,7 @@ app.post('/api/deposit', (req, res) => {
                             });
                         }
 
-                        // 3. Registrar la transacción con origin_account como NULL porque es un depósito
+                      
                         const transactionQuery = `
                             INSERT INTO transactions 
                             (origin_account, target_account, amount, transaction_date) 
@@ -457,7 +457,7 @@ app.post('/api/deposit', (req, res) => {
                                 });
                             }
 
-                            // Confirmar transacción
+                     
                             connection.commit((err) => {
                                 if (err) {
                                     return connection.rollback(() => {
@@ -538,7 +538,7 @@ app.post('/api/withdrawal', (req, res) => {
                     });
                 }
 
-                // 1. Obtener la cuenta del usuario
+            
                 const accountQuery = 'SELECT id, account_number, balance FROM accounts WHERE user_id = ?';
                 connection.query(accountQuery, [userId], (err, accountResults) => {
                     if (err) {
@@ -564,7 +564,7 @@ app.post('/api/withdrawal', (req, res) => {
 
                     const account = accountResults[0];
 
-                    // Verificar que haya saldo suficiente
+                   
                     if (parseFloat(account.balance) < parseFloat(amount)) {
                         return connection.rollback(() => {
                             connection.release();
@@ -577,7 +577,7 @@ app.post('/api/withdrawal', (req, res) => {
 
                     const newBalance = parseFloat(account.balance) - parseFloat(amount);
 
-                    // 2. Actualizar el balance
+                 
                     const updateQuery = 'UPDATE accounts SET balance = ? WHERE id = ?';
                     connection.query(updateQuery, [newBalance, account.id], (err, updateResult) => {
                         if (err) {
@@ -591,7 +591,7 @@ app.post('/api/withdrawal', (req, res) => {
                             });
                         }
 
-                        // 3. Registrar la transacción con target_account como NULL porque es un retiro
+                      
                         const transactionQuery = `
                             INSERT INTO transactions 
                             (origin_account, target_account, amount, transaction_date) 
@@ -613,7 +613,7 @@ app.post('/api/withdrawal', (req, res) => {
                                 });
                             }
 
-                            // Confirmar transacción
+                            
                             connection.commit((err) => {
                                 if (err) {
                                     return connection.rollback(() => {
