@@ -2,6 +2,8 @@
 
 CortesBank es una aplicación bancaria de demostración, construida con **React** en el frontend y **Node.js** con **Express.js** en el backend. El objetivo de la app es proporcionar una interfaz sencilla para realizar operaciones bancarias, como el login, registro, transacciones, depósitos, retiros, y transferencias. Además, incluye un chatbot asistente para responder dudas sobre el banco, utilizando la API de OpenAI.
 
+[Ver demo de la web](https://www.youtube.com/watch?v=I9SeRKXgods)
+
 ## **Características**
 
 - **Login y Registro**: Los usuarios pueden registrarse y acceder a la plataforma con credenciales seguras.
